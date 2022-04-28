@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * @title FlashLoanReceiver
  * @author Damn Vulnerable DeFi (https://damnvulnerabledefi.xyz)
  */
-contract FlashLoanReceiver {
+contract FlashLoanReceiverV2 {
     using Address for address payable;
 
     address payable private pool;
@@ -33,12 +33,8 @@ contract FlashLoanReceiver {
 
     // Internal function where the funds received are used
     function _executeActionDuringFlashLoan() internal { 
-        //Solution 2
-        //This is a solution to drain all the ether in one call
-        //but I'm not certain if is possible to modify this contract
         uint256 amount = 9 ether;
         pool.sendValue(amount);
-
     }
 
     // Allow deposits of ETH

